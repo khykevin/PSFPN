@@ -1,0 +1,36 @@
+GPU1(nb cores = 2688) :
+	DEG=500 000 000
+	2 opérations/thread ~17.1s pas d'écart significatif par rapport à une opération(cut = 91)
+	10 opérations/thread ~idem (cut=19)
+	100 opérations/thread 17.8s plus long que 1,2 ou 10 op/threads(cut=2)
+	1000 opérations/thread 17.8s  plus long que 1,2 ou 10 op/threads(NB_BLOCK<NB_CORES le calcul s'effectue en 1 seul fois)
+	10000 opérations/thread 18.1s  plus long que 1,2 ou 10 op/threads(NB_BLOCK<NB_CORES le calcul s'effectue en 1 seul fois)
+	100000 opérations/thread 22.2s  plus long que le reste
+	1000000 opérations/thread 38.7s  plus long que le reste
+
+
+GPU2(nb cores = 2880):
+	DEG=500 000 000
+	2 opérations/thread ~24s pas d'écart significatif par rapport à une opération(cut = 85)
+	10 opérations/thread ~24.3 (cut=17) un peu + long
+	100 opérations/thread 25.1s plus long que 1,2 ou 10 op/threads(cut=2)
+	1000 opérations/thread ~idem que 100
+	10000 opérations/thread 25.5s  plus long que 1,2 ou 10 op/threads(NB_BLOCK<NB_CORES le calcul s'effectue en 1 seul fois)
+	100000 opérations/thread 33.2s  plus long que le reste
+	1000000 opérations/thread 55.2s  plus long que le reste
+
+
+
+GPU3(nb cores = 3584):  (test avec fortin dans top, beaucoup de variations)
+	DEG=500 000 000
+	2 opérations/thread ~22.4s pas d'écart significatif par rapport à une opération(cut = 69)
+	10 opérations/thread ~22.7 (cut=14) un peu + long
+	100 opérations/thread 23.1s plus long que 1,2 ou 10 op/threads(cut=2)
+	1000 opérations/thread 22.8s  plus long que 1,2 ou 10 op/threads(NB_BLOCK<NB_CORES le calcul s'effectue en 1 seul fois)
+	100000 opérations/thread 23.0s  plus long que le reste
+	1000000 opérations/thread 31.2s  plus long que le reste
+
+
+
+! Limité à 1 000 000 d'opérations par thread (sinon résultats éronnés ou =0 ou warning)
+=> On peut déduire que plus le nombre d'opérations par thread est grand plus le temps d'exectution sera long
