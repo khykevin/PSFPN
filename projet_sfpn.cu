@@ -5,6 +5,7 @@
 #include "cuda.h"
 
 
+<<<<<<< HEAD
 // Borne superieure pour les coefficients des polynomes
 #define MAX_COEF (2048*2048)
 
@@ -56,11 +57,26 @@ __global__ void add(sfixn* a, sfixn* b, sfixn* res, sfixn deg, sfixn offset){
 	//printf("threadIdx.x = %d, blockIdx = %d, blockDim.x = %d, indice=%d\n",threadIdx.x,blockIdx.x,blockDim.x, ind);
 	if(ind < deg){
 		res[ind+offset]=a[ind+offset]+b[ind+offset];
+=======
+#define DEG 32767//ne marche plus a 100 000 000
+#define MAX_COEF (2048*2048)
+#define THREADS_PER_BLOCK 1025
+
+typedef int sfixn;
+
+__global__ void add(sfixn* a, sfixn* b, sfixn *p, sfixn* res, sfixn deg){
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;  //blockDim.x correspond au nombre de threads par block
+	if(ind < deg){
+		res[ind]=(a[ind]+b[ind])%(*p);
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 	}
 	
 }
 
+<<<<<<< HEAD
 // Fonction d'affichage de polynome
+=======
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 void affichage_polynome(sfixn *res){
 	sfixn i;
 	for(i=0;i<DEG;i++){
@@ -68,19 +84,30 @@ void affichage_polynome(sfixn *res){
 			printf("P[%d]=%d  ",i,res[i]);
 		if (res[i]>65521){
 			printf("ERREUR!!!\n");
+<<<<<<< HEAD
 			printf("P[%d]=%d  \n",i,res[i]);
 			exit(0);
+=======
+			printf("P[%d]=%d  ",i,res[i]);
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 		}
 	}
 	printf("\n");
 }
 
+<<<<<<< HEAD
 
 // main
 int main(){
 	sfixn *a, *b,*res; /*Copie des variables sur CPU, p*/
 	sfixn *g_a, *g_b,*g_p,*g_res; /*Copie des variables sur GPU, g_p*/
 	sfixn i, cut,offset;
+=======
+int main(){
+	sfixn *a, *b, p,*res; /*Copie des variables sur CPU, p*/
+	sfixn *g_a, *g_b,*g_p,*g_res; /*Copie des variables sur GPU, g_p*/
+	sfixn i;	
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 	clock_t temps;
 	sfixn size=DEG*sizeof(sfixn);	
 
@@ -92,20 +119,31 @@ int main(){
 	a = (sfixn*)malloc(size);
 	b = (sfixn*)malloc(size);
 	res = (sfixn*)malloc(size);
+<<<<<<< HEAD
     offset=0;
+=======
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 	srand(time(NULL));
 	/* On initialise les coefficients de polynomes de degre DEG */
 	for(i=0; i<DEG; i++){
 		a[i]=(sfixn) (MAX_COEF*((double)rand())/ RAND_MAX);
 		b[i]=(sfixn) (MAX_COEF*((double)rand())/ RAND_MAX);
 	}
+<<<<<<< HEAD
 	sfixn test=(a[DEG-1]+b[DEG-1])%MOD;
 	printf("res[%d]=%d\n",DEG-1,test);
 	/*Le modulo p un nombre premier*/	
+=======
+	sfixn test=(a[DEG-1]+b[DEG-1])%65521;
+	printf("test=%d\n",test);
+	/*Le modulo p un nombre premier*/	
+	p=65521;
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 
 	/*On copie sur le GPU les vecteurs initialisé sur le CPU*/
 	cudaMemcpy(g_a, a, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(g_b, b, size, cudaMemcpyHostToDevice);
+<<<<<<< HEAD
 
 
 	/*Appel de fonction sur le GPU */
@@ -135,11 +173,22 @@ int main(){
 		add<<<CUDA_CORES*THREADS_PER_BLOCK,THREADS_PER_BLOCK>>>(g_a,g_b,g_res,DEG,offset);
 	  }  
     }
+=======
+	cudaMemcpy(g_p, &p, sizeof(sfixn), cudaMemcpyHostToDevice);	
+
+
+	/*Appel de fonction sur le GPU */
+	add<<<(DEG+THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK,THREADS_PER_BLOCK>>>(g_a,g_b,g_p,g_res,DEG);
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 
 	/*Copie du resultat du GPU sur le CPU*/
 	cudaMemcpy(res, g_res, size, cudaMemcpyDeviceToHost);
 
+<<<<<<< HEAD
 	/*Liberation de l'espace alloué sur le GPU */
+=======
+	/*Liberation de l'espace aloué sur le GPU */
+>>>>>>> 8d1f4218625334a38fa83452e47fa45b12a10edc
 	affichage_polynome(res);
 	cudaFree(g_a);
 	cudaFree(g_b);
