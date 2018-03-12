@@ -9,10 +9,14 @@
 GPU1: nVidia GeForce GTX TITAN 2688 Cuda cores
 GPU2: nVidia Tesla K40c 2880 Cuda cores
 GPU3: nVidia Tesla P100-PCIe 3584 Cuda cores */
-#define CUDA_CORES 2880
 
 // Nombre de blocs necessaires pour l'appel de fonction CUDA, le nombre de blocs dépend du degré
 //#define NB_BLOCK ((DEG+THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK)//ne marche plus a 100 000 000
+#define CUDA_CORES 2688
+
+// Nombre de blocs necessaires pour l'appel de fonction CUDA, le nombre de blocs dépend du degré
+//#define NB_BLOCK ((DEG+THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK)//ne marche plus a 100 000 000
+
 
 // Degré des polynômes
 //#define DEG 1000000000
@@ -24,7 +28,6 @@ GPU3: nVidia Tesla P100-PCIe 3584 Cuda cores */
 #define IFMOD 1
 
 // Nombre d'opérations par thread
-
 
 // uint64_t bug à partir de 1<<28 environ
 // unsigned int bug à partir de 1<<29 environ
@@ -106,6 +109,7 @@ int main(){
 							 add_mod_multhd<<<nb_block_restant,THREADS_PER_BLOCK>>>(g_a,g_b,MOD,g_res,DEG,offset,OPETHD);
 						 }else{
 		         	 add_mod_multhd<<<CUDA_CORES,THREADS_PER_BLOCK>>>(g_a,g_b,MOD,g_res,DEG,offset,OPETHD);
+
          		 }
          }   
 	    }else{

@@ -1,7 +1,11 @@
 CC =gcc
 NVC = nvcc
 CFLAGS =-W -Wall -std=gnu99 -pedantic -O3
+<<<<<<< HEAD
 NVFLAGS = -O2 -Wno-deprecated-gpu-targets
+=======
+NVFLAGS = -O2
+>>>>>>> e60feb9dcfbc12986b018024d33f0a87ed1946fe
 
 .SUFFIXES:
 .PHONY: all clean projet arithmetique

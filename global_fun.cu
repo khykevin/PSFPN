@@ -15,9 +15,7 @@ __global__ void add_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfix
 		}
 		res[ind+offset] = r;*/
 		//res[ind+offset] = (a[ind+offset]+b[ind+offset])%p;
-	}
-	
-}
+
 
 // Fonction addition de polynomes sans modulo sur Device (GPU)
 __global__ void add(sfixn* a, sfixn* b, sfixn* res, sfixn deg, sfixn offset){
@@ -56,6 +54,4 @@ __global__ void add_multhd(sfixn* a, sfixn* b, sfixn* res, sfixn deg, sfixn offs
 	}
 	
 }
-
-
 

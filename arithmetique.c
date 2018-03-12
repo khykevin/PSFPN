@@ -32,7 +32,6 @@ sfixn* addition_polynome_mod(sfixn* a, sfixn* b, sfixn p){
    		r += (r >> BASE_1) & p;
 		res[i]=r;
 		//res[i] = (a[i] + b[i])%p;
-		//printf("add[%d]=%d ",i,res[i]);			
 	}
 	return res;
 }
@@ -68,6 +67,7 @@ int main(){
 
 	res = addition_polynome_mod(a,b,p);
 	printf("%d\n",res[DEG-1]);
+
 	free(a);
 	free(b);
 	free(res);
