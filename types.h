@@ -4,6 +4,6 @@
 #include "stdint.h"
 
 // Permet de dynamiser le type utilisé pour les opérations
-typedef int sfixn;
+typedef unsigned int sfixn;
 
 #endif
