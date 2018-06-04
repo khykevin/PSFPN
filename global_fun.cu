@@ -168,10 +168,10 @@ __device__ void oppose_void(sfixn* op, sfixn* tab, sfixn size, sfixn p){
 
 
 // Fonction addition modulo MOD de polynomes sur Device (GPU)
-__global__ void add_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn offset){
+__global__ void add_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn offset){
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;  //blockDim.x correspond au nombre de threads par block
   sfixn r;
-  if(ind+offset < deg){
+  if(ind+offset < size){
     r = a[ind+offset]+b[ind+offset];
 		MOD_PERCENT(p,r);
 		res[ind+offset] = r;
@@ -179,21 +179,21 @@ __global__ void add_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfix
 }
 
 // Fonction addition de polynomes sans modulo sur Device (GPU)
-__global__ void add(sfixn* a, sfixn* b, sfixn* res, sfixn deg, sfixn offset){
+__global__ void add(sfixn* a, sfixn* b, sfixn* res, sfixn size, sfixn offset){
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;  //blockDim.x correspond au nombre de threads par block
   //printf("threadIdx.x = %d, blockIdx = %d, blockDim.x = %d, indice=%d\n",threadIdx.x,blockIdx.x,blockDim.x, ind);
-  if(ind+offset < deg){
+  if(ind+offset < size){
     res[ind+offset]=a[ind+offset]+b[ind+offset];
   }   
 }
-__global__ void mult_mod_multhd_tmp(sfixn* a, sfixn* b, sfixn p, sfixn* tmp, sfixn cpt, sfixn divide, sfixn deg){
+__global__ void mult_mod_multhd_tmp(sfixn* a, sfixn* b, sfixn p, sfixn* tmp, sfixn cpt, sfixn divide, sfixn size){
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
   sfixn i,r;
   if(ind < divide){
-	  for(i=0;i<deg;i++){
+	  for(i=0;i<size;i++){
 	    r = (a[ind+(cpt-1)*divide]*b[i])%p;
 	    //__syncthreads();
-      tmp[i+ind*deg]=r;
+      tmp[i+ind*size]=r;
       //if(i==0 && ind==0) printf("r = %d, tmp[0] = %d\n",r,tmp[0]);
       //res[ind+i] += r;
       //MOD_PERCENT(p,res[ind+i]);
@@ -202,6 +202,7 @@ __global__ void mult_mod_multhd_tmp(sfixn* a, sfixn* b, sfixn p, sfixn* tmp, sfi
   }
 }
 
+/*
 __global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T){	
 	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
 	if(ind<2*size-1){
@@ -227,7 +228,279 @@ __global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn s
 		}
 	}
 }
+*/
 
+
+/*
+__global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn max_uint){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<2*size-1){
+		sfixn i,j,r;
+		for(i=ind*T;i<(ind+1)*T;i++){
+			if(i<2*size-1){
+				if(i>=size){
+					for(j=i-(size-1);j<size;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[i]+=r;
+						if(res[i]>=max_uint)MOD_PERCENT(p,res[i]);
+					}
+				}else{
+					for(j=0;j<=i;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[i]+=r;
+						if(res[i]>=max_uint)MOD_PERCENT(p,res[i]);
+					}
+				}
+				MOD_PERCENT(p,res[i]);
+			}
+		}
+	}
+}
+*/
+
+__global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<=(2*(size-1))){
+		sfixn i,j,r;
+		for(i=ind*T;i<(ind+1)*T;i++){
+			if(i<2*size-1){
+				if(i>=size){
+					for(j=i-(size-1);j<size;j++){
+						r=a[j]*b[i-j];
+						//MOD_PERCENT(p,r);
+						res[i]+=r;
+						//MOD_PERCENT(p,res[i]);
+					}
+				}else{
+					for(j=0;j<=i;j++){
+						r=a[j]*b[i-j];
+						//MOD_PERCENT(p,r);
+						res[i]+=r;
+						//MOD_PERCENT(p,res[i]);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+__global__ void mult_mod_repart_iter(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn iter){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<=(2*(size-1))){
+		sfixn i,j,k,r,nb_iter;
+		for(i=ind*T;i<(ind+1)*T;i++){
+			if(i<2*size-1){
+				if(i>=size){
+					sfixn decal=i-(size-1);
+					nb_iter=(2*(size-1)-i)/iter;
+					for(j=0;j<nb_iter;j++){
+						for(k=j*iter+decal;k<(j+1)*iter+decal;k++){
+							r=a[k]*b[i-k];
+							res[i]+=r;
+						}
+						MOD_PERCENT(p,res[i]);
+					}
+					for(j=nb_iter*iter+decal;j<size;j++){
+						r=a[j]*b[i-j];
+						res[i]+=r;
+					}
+					MOD_PERCENT(p,res[i]);
+				}else{
+					nb_iter=i/iter;
+					for(j=0;j<nb_iter;j++){
+						for(k=j*iter;k<(j+1)*iter;k++){
+							r=a[k]*b[i-k];
+							res[i]+=r;
+						}
+						MOD_PERCENT(p,res[i]);
+					}
+					for(j=nb_iter*iter;j<=i;j++){
+						r=a[j]*b[i-j];
+						res[i]+=r;
+					}
+					MOD_PERCENT(p,res[i]);
+				}
+			}
+		}
+	}
+}
+
+
+
+__global__ void test(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T){	
+	//sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+}
+
+
+
+__global__ void mult_mod_repart_non_contigue(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn nb){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<=(2*(size-1)/T)){
+		sfixn i,j,r;
+		for(i=ind;i<=ind+nb*(T-1);i=i+nb){
+			if(i==20000)
+				printf("ind=%d\n",ind);
+			if(i<2*size-1){
+				if(i>=size){
+					for(j=i-(size-1);j<size;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[i]+=r;
+						MOD_PERCENT(p,res[i]);
+					}
+				}else{
+					for(j=0;j<=i;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[i]+=r;
+						MOD_PERCENT(p,res[i]);
+					}
+				}
+			}
+		}
+	}
+}
+
+__global__ void mult_mod_repart_non_contigue2(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn nb){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	sfixn ind_offset=ind*T;
+	if(ind<=(2*(size-1)/T)){
+		sfixn i,j,r;
+		for(i=ind;i<=ind+nb*(T-1);i=i+nb){
+			if(i==20000)
+				printf("ind=%d\n",ind);
+			if(i<2*size-1){
+				if(i>=size){
+					for(j=i-(size-1);j<size;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[ind_offset]+=r;
+						MOD_PERCENT(p,res[ind_offset]);
+					}
+				}else{
+					for(j=0;j<=i;j++){
+						r=a[j]*b[i-j];
+						MOD_PERCENT(p,r);
+						res[ind_offset]+=r;
+						MOD_PERCENT(p,res[ind_offset]);
+					}
+				}
+			}
+			ind_offset++;
+		}
+		
+	}
+}
+
+
+
+
+__global__ void mult_mod_repart_depassement(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn max_uint, sfixn iter){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<2*size-1){
+		sfixn i,j,r;
+		for(i=ind*T;i<(ind+1)*T;i++){
+			if(i<2*size-1){
+				if(i>=size){
+					if(i>=iter){
+						for(j=i-(size-1);j<size;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+							if(res[i]>=max_uint)MOD_PERCENT(p,res[i]);
+						}
+					}else{
+						for(j=i-(size-1);j<size;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+						}
+					}
+				}else{
+					if(i>=iter){
+						for(j=0;j<=i;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+							if(res[i]>=max_uint)MOD_PERCENT(p,res[i]);
+						}
+					}else{
+						for(j=0;j<=i;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+						}
+					}
+				}
+				MOD_PERCENT(p,res[i]);
+			}
+		}
+	}
+}
+
+
+
+/*
+__global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn T, sfixn max_iter){	
+	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
+	if(ind<2*size-1){
+		sfixn i,j,r;
+		for(i=ind*T;i<(ind+1)*T;i++){
+			if(i<2*size-1){
+				if(i>=size){
+					if(i>=max_iter){
+						for(j=i-(size-1);j<size;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+							MOD_PERCENT(p,res[i]);
+							//if(k%(max_iter)==0 || j==size-1)MOD_PERCENT(p,res[i]);
+							//k++;
+						}
+					}else{
+						for(j=i-(size-1);j<size;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+							//MOD_PERCENT(p,res[i]);
+							//if(k%(max_iter)==0 || j==size-1)MOD_PERCENT(p,res[i]);
+							//k++;
+						}
+						MOD_PERCENT(p,res[i]);	
+					}
+					
+				}else{
+					if(i>=max_iter){
+						//k=1;
+						for(j=0;j<=i;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+							MOD_PERCENT(p,res[i]);
+							//if(k==max_iter){
+								//MOD_PERCENT(p,res[i]);
+								//k=0;
+							//}
+							//k++;
+						}
+					}else{
+						for(j=0;j<=i;j++){
+							r=a[j]*b[i-j];
+							MOD_PERCENT(p,r);
+							res[i]+=r;
+						}
+						MOD_PERCENT(p,res[i]);
+					}
+					
+				}
+			}
+		}
+	}
+}
+*/
 /*
 __global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn nb_bloc){	
 	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
@@ -261,29 +534,29 @@ __global__ void mult_mod_repart(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn s
 */
 
 
-__global__ void mult_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn i){
+__global__ void mult_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn i){
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
   sfixn r;
   printf("ind=%d\n",ind);
-  if(ind < deg){
-    r = (a[ind]*b[i])%p;
+  if(ind < size){
+    r = (a[ind]*b[i]);//%p;
     res[ind+i] += r;
-    MOD_PERCENT(p,res[ind+i]);
+    //MOD_PERCENT(p,res[ind+i]);
     //res[ind+i] = (res[ind+i]+(a[ind]*b[i]))%p;
   }
 }
 
 
-__global__ void mult_mod_share(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg){
+__global__ void mult_mod_share(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size){
   extern __shared__ sfixn selfres[];
   sfixn tid=threadIdx.x;
-  //sfixn bid=DEG/blockIdx.x;
+  //sfixn bid=size/blockIdx.x;
   //sfixn bid=blockIdx.x;
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
   sfixn i,r,j;
   //printf("TTTTTTTEEEEEEEEEEEETTTTTT\n");
-  if(ind<deg){
-		for(i=0;i<deg;i++){
+  if(ind<size){
+		for(i=0;i<size;i++){
 			if(ind+i==1) printf("avant %d %d\n",selfres[i+ind]);
 		  r = (a[ind]*b[i]);
 		  __syncthreads();
@@ -294,7 +567,7 @@ __global__ void mult_mod_share(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn de
 		__syncthreads();
 		if(tid==0){
 			//__syncthreads();
-		  for(j=0;j<2*deg-1;j++){
+		  for(j=0;j<2*size-1;j++){
 		   	//__syncthreads();
 		    res[j]=(res[j]+selfres[j]);
 		    //__syncthreads();
@@ -304,12 +577,12 @@ __global__ void mult_mod_share(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn de
 	}
 }
 
-__global__ void mult_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg){
+__global__ void mult_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size){
     sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
     sfixn i,r;
    
-    if(ind < deg){
-        for(i=0;i<deg;i++){
+    if(ind < size){
+        for(i=0;i<size;i++){
             r = (a[ind]*b[i]);//%p;
             __syncthreads();
             res[ind+i] = (res[ind+i]+r);//%p;
@@ -337,13 +610,13 @@ q  = (sfixn) ((((double) a[ind]) * ((double) b[i])) * ninv);
 */
 
 
-sfixn* multiplication_polynome_mod(sfixn* a, sfixn* b, sfixn p,sfixn deg){
+sfixn* multiplication_polynome_mod(sfixn* a, sfixn* b, sfixn p,sfixn size){
     sfixn*res;
     sfixn i,j,r;
-    res =(sfixn*)malloc(2*deg*sizeof(sfixn));
-    memset(res, 0, 2*deg*sizeof(sfixn));
-    for(i=0;i<deg;i++){
-        for(j=0;j<deg;j++){
+    res =(sfixn*)malloc(2*size*sizeof(sfixn));
+    memset(res, 0, 2*size*sizeof(sfixn));
+    for(i=0;i<size;i++){
+        for(j=0;j<size;j++){
             r=(a[i]*b[j]);
             MOD_PERCENT(p,r); 
             r+=res[i+j];
@@ -355,13 +628,13 @@ sfixn* multiplication_polynome_mod(sfixn* a, sfixn* b, sfixn p,sfixn deg){
 }
 
 
-__global__ void mult_mod_multhd2(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn i, sfixn op_thread){
+__global__ void mult_mod_multhd2(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn i, sfixn op_thread){
   sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
   ind=ind*op_thread;
   sfixn j,r;
-  if(ind<deg){
+  if(ind<size){
 		for(j=0;j<op_thread;j++){
-		  if(ind+i+j <= 2*(deg-1) && ind+j<deg){
+		  if(ind+i+j <= 2*(size-1) && ind+j<size){
 		    r = (a[ind+j]*b[i])%p;
 		    r += res[ind+i+j];
 		    MOD_PERCENT(p,r);
@@ -370,10 +643,10 @@ __global__ void mult_mod_multhd2(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn 
 		}
 	}
 }
-/*__global__ void mult_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn i){
+/*__global__ void mult_mod(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn i){
 	sfixn ind=threadIdx.x+blockIdx.x*blockDim.x;
 	sfixn r;
-	if(ind < deg){
+	if(ind < size){
 		r = (a[ind]*b[i])%p;
 		res[ind+i] = (res[ind+i]+r)%p;
 		//res[ind+i] = (res[ind+i]+(a[ind]*b[i]))%p;
@@ -382,11 +655,11 @@ __global__ void mult_mod_multhd2(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn 
 
 
 // Fonction addition modulo MOD de polynomes sur Device (GPU) avec multiples opérations par thread
-__global__ void add_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn offset, sfixn op_thread){
+__global__ void add_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn offset, sfixn op_thread){
   sfixn i,r;
   sfixn ind=op_thread*threadIdx.x+blockIdx.x*blockDim.x*op_thread;  //blockDim.x correspond au nombre de threads par block
   for(i=0;i<op_thread;i++){
-    if(ind+offset+i < deg){
+    if(ind+offset+i < size){
       r = a[ind+offset+i]+b[ind+offset+i];
       MOD_PERCENT(p,r);
       res[ind+offset+i]=r;
@@ -394,13 +667,13 @@ __global__ void add_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn de
   } 
 }
 
-__global__ void mult_tat_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn deg, sfixn offset, sfixn op_thread){
+__global__ void mult_tat_mod_multhd(sfixn* a, sfixn* b, sfixn p, sfixn* res, sfixn size, sfixn offset, sfixn op_thread){
   sfixn i;
   sfixn ind=op_thread*threadIdx.x+blockIdx.x*blockDim.x*op_thread;  //blockDim.x correspond au nombre de threads par block
   for(i=0;i<op_thread;i++){
-    if(ind+offset+i < deg){
+    if(ind+offset+i < size){
       res[ind+offset+i]=(a[ind+offset+i]*b[ind+offset+i])%p;
-      if(ind+offset+i == deg-1){
+      if(ind+offset+i == size-1){
         printf("res=%d\n",res[ind+offset+i]);
       }
     }

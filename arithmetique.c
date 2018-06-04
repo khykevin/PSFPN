@@ -4,7 +4,7 @@
 #include "time.h"
 #include "string.h"
 
-#define DEG 1024
+#define DEG 500000000
 
 /* CPU1: Intel(R) Xeon(R) CPU E3-1275 v3 @ 3.50GHz
 CPU2: Intel(R) Xeon(R) CPU E5-2660 0 @ 2.20GHz
@@ -21,7 +21,7 @@ sfixn BASE_1 = 31;
 
 void affichage_polynome(sfixn *res){
     sfixn i;
-    for(i=0;i<2*DEG-1;i++){
+    for(i=DEG-10;i<DEG;i++){
     	printf("P[%d]=%d  \n",i,res[i]);
     }
     printf("\n");
@@ -45,15 +45,15 @@ sfixn mul_mod(sfixn a, sfixn b, sfixn n) {
 /* Additionne deux polynômes a et b modulo p */
 sfixn* addition_polynome_mod(sfixn* a, sfixn* b, sfixn p){
     sfixn*res,i;
-    sfixn r;
+    //sfixn r;
     res = malloc(DEG*sizeof(sfixn));
     for(i=0;i<DEG;i++){
-        r =(a[i]+b[i]);
+        res[i] =(a[i]+b[i])%p;
     /*    r-= p;
            r += (r >> BASE_1) & p;
         res[i]=r;
         res[i] = (a[i] + b[i])%p;*/
-        if(r >= p) res[i] = r-p;
+        //if(r >= p) res[i] = r-p;
         //printf("add[%d]=%d ",i,res[i]);           
     }
     return res;
@@ -111,18 +111,21 @@ int main(){
         
         //printf("a[%d]=%d et b[%d]=%d\n",i,a[i],i,b[i]);
     }
-    printf("%d\n",(a[DEG-1]*b[DEG-1])%p);
-
-    res = multiplication_polynome_mod(a,b,p);
-    printf("%d\n",res[2*(DEG-1)]);
-   
-    free(a);
-    free(b);
-   
+    printf("%d\n",(a[DEG-1]+b[DEG-1])%p);
+		res=addition_polynome_mod(a,b,p);
+    //res = multiplication_polynome_mod(a,b,p);
+    printf("%d\n",res[DEG-1]);
     end = clock();
     time_spent = (double)(end) / CLOCKS_PER_SEC;
     printf("Le temps d'execution est de : %g\n",time_spent);
-    affichage_polynome(res);
+    //affichage_polynome(res);
+    /*for(i=0;i<DEG;i++){
+    	if(res[i]!=(a[i]+b[i])%p)
+    		printf("ERREUR %d res=%d bon=%d\n",i,res[i],(a[i]+b[i])%p);
+    }*/
+    
+    free(a);
+    free(b);
     free(res);
     return 0;
 }
